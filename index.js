@@ -2,6 +2,17 @@ import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
+function send_log_message(level, message, data = {}) {
+  const log = {
+    type: "server_log",
+    level,
+    message,
+    data,
+    timestamp: new Date().toISOString()
+  };
+  console.error(JSON.stringify(log)); // Tampilkan ke stdout
+}
+
 // Create an MCP server
 const server = new McpServer({
   name: "demo-server",
@@ -41,16 +52,20 @@ server.registerTool("getPost",
     title: "Get JSONPlaceholder Post",
     description: "Fetch a post from JSONPlaceholder by ID",
     inputSchema: {
-      id: z.number().int().min(1).max(100)
+      id: z.number()
     }
   },
   async ({ id }) => {
-    const response = await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`);
+    // send_log_message("info", "[getPost] Request received", { id });
+
+    const response = await fetch(`https://jsonplaceholder.typicode.com/postss/${id}`);
     if (!response.ok) {
+      send_log_message("error", { message: response.data }, { status: response.status });
       throw new Error(`Failed to fetch post with id ${id}`);
     }
 
     const post = await response.json();
+    // send_log_message("info", "[getPost] Post fetched", post);
 
     return {
       content: [{
@@ -64,8 +79,6 @@ server.registerTool("getPost",
     };
   }
 );
-
-
 
 // Start receiving messages on stdin and sending messages on stdout
 const transport = new StdioServerTransport();
